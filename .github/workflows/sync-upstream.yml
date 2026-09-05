@@ -1,0 +1,33 @@
+name: Sync Upstream
+on:
+  schedule:
+    - cron: '0 0 * * *' # Automated daily sync
+  workflow_dispatch:      # Manual trigger button
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.SYNC_TOKEN }}
+          fetch-depth: 0
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/aryanranade/AI-Powered-Intelligent-Query-Resolution-System.git
+          git fetch upstream
+          
+          # Backup the workflow file so reset doesn't delete it
+          cp .github/workflows/sync-upstream.yml /tmp/sync-upstream.yml
+          
+          git checkout main
+          git reset --hard upstream/main
+          
+          # Restore the workflow file back into place
+          mkdir -p .github/workflows
+          cp /tmp/sync-upstream.yml .github/workflows/sync-upstream.yml
+          
+          git add .github/workflows/sync-upstream.yml
+          git commit -m "Keep sync workflow after upstream reset" || true
+          git push origin main --force
